@@ -83,33 +83,34 @@ function protect(req, res, next) {
 
 // LOGIN API
 
+
 app.post("/api/auth/login", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase();
-    const password = req.body.password || "";
+    const email = String(req.body.email || "")
+      .trim().toLowerCase();
 
-    console.log("Login email:", email);
+    const password = String(req.body.password || "");
 
-    const user = await User.findOne({ email });
-
-    console.log("Admin found:", !!user);
-
-    if (!user) {
-      return res.status(401).json({
-        message: "Admin account not found"
+    if (!email.includes("@")) {
+      return res.status(400).json({
+        message: "Enter a valid email address"
       });
     }
 
-    const passwordMatches = await bcrypt.compare(
-      password,
-      user.password
-    );
+    if (!password.trim()) {
+      return res.status(400).json({
+        message: "Enter password"
+      });
+    }
 
-    console.log("Password matches:", passwordMatches);
+    let user = await User.findOne({ email });
 
-    if (!passwordMatches) {
-      return res.status(401).json({
-        message: "Password does not match"
+    if (!user) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      user = await User.create({
+        email,
+        password: hashedPassword
       });
     }
 
@@ -128,8 +129,9 @@ app.post("/api/auth/login", async (req, res) => {
     });
 
   } catch (err) {
-    console.log("Login error:", err.message);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      message: err.message
+    });
   }
 });
 
